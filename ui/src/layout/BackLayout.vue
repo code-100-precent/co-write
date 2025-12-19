@@ -11,6 +11,9 @@ import {
   BellIcon,
   FileTextIcon,
   ShieldIcon,
+  CreditCardIcon,
+  LinkIcon,
+  FileIcon,
 } from 'lucide-vue-next';
 import { useAuth } from '../composables/useAuth'
 
@@ -25,6 +28,9 @@ const menuItems = [
   { label: '我的消息', icon: BellIcon, path: '/back/notifications' },
   { label: '个人日志', icon: FileTextIcon, path: '/back/logs' },
   { label: '账号管理', icon: ShieldIcon, path: '/back/account' },
+  { label: '模板管理', icon: FileIcon, path: '/back/templates' },
+  { label: 'Webhook管理', icon: LinkIcon, path: '/back/webhooks' },
+  { label: '账单管理', icon: CreditCardIcon, path: '/back/billing' },
   { label: '设置', icon: SettingsIcon, path: '/back/settings' },
   { label: '数据统计', icon: BarChartIcon, path: '/back/stats' },
 ];

@@ -14,8 +14,10 @@ import com.cowrite.project.model.vo.UserVO;
 import com.cowrite.project.service.EmailService;
 import com.cowrite.project.service.UserService;
 import com.cowrite.project.utils.JwtUtils;
+import com.cowrite.project.utils.PasswordEncoder;
 import com.cowrite.project.utils.RedisUtils;
 import com.cowrite.project.utils.SensitiveDataUtils;
+import com.cowrite.project.service.PasswordService;
 import com.hibiscus.signal.spring.anno.SignalEmitter;
 import com.hibiscus.signal.spring.configuration.SignalContextCollector;
 import org.springframework.data.redis.RedisConnectionFailureException;
@@ -52,12 +54,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     private static final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
-    public UserServiceImpl(FileStorageAdapter fileStorageAdapter, EmailService emailService, RedisUtils redisUtils, UserMapper userMapper, JwtUtils jwtUtils) {
+    private final PasswordService passwordService;
+
+    public UserServiceImpl(FileStorageAdapter fileStorageAdapter, EmailService emailService, RedisUtils redisUtils, UserMapper userMapper, JwtUtils jwtUtils, PasswordService passwordService) {
         this.fileStorageAdapter = fileStorageAdapter;
         this.emailService = emailService;
         this.redisUtils = redisUtils;
         this.userMapper = userMapper;
         this.jwtUtils = jwtUtils;
+        this.passwordService = passwordService;
     }
 
     @Override
@@ -113,6 +118,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException(SYSTEM_ERROR.code(), "邮箱已被注册");
         }
         User user = BuildNewUser(userRegisterEmailRequest.getEmail());
+        // 如果提供了密码，则加密并设置密码
+        if (userRegisterEmailRequest.getPassword() != null && !userRegisterEmailRequest.getPassword().isEmpty()) {
+            user.setPassword(PasswordEncoder.encode(userRegisterEmailRequest.getPassword()));
+        }
         try {
             if (userMapper.insert(user) != 1) {
                 throw new BusinessException(SYSTEM_ERROR.code(), "注册失败, 请联系站长");
@@ -159,6 +168,52 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException(SYSTEM_ERROR.code(), "验证码错误");
         }
         User user = userMapper.selectByEmail(userEmailRequest.getEmail());
+        SignalContextCollector.collect(EVENT_INTER_MEDIATE_USER, user);
+        SignalContextCollector.collect(EVENT_INTER_MEDIATE_REQUEST, request);
+        String token = jwtUtils.generateToken(user);
+        // 缓存token和用户信息
+        redisUtils.set(TOKEN_CACHE_KEY + user.getId(), token, TOKEN_CACHE_TIME);
+        redisUtils.set(USER_CACHE_KEY + user.getEmail(), user.getEmail(), USER_CACHE_TIME);
+        UserVO userVO = UserVO.convertToUserVO(user);
+        userVO.setToken(token);
+        return userVO;
+    }
+
+    /**
+     * 用户密码登录
+     */
+    @Override
+    @Transactional
+    @SignalEmitter(USER_LOGIN_EVENT)
+    public UserVO loginByPassword(UserEmailRequest userEmailRequest, HttpServletRequest request) {
+        String email = userEmailRequest.getEmail();
+        String password = userEmailRequest.getPassword();
+        
+        if (!SensitiveDataUtils.isValidEmail(email)) {
+            throw new BusinessException(SYSTEM_ERROR.code(), "邮箱格式不正确");
+        }
+        if (password == null || password.isEmpty()) {
+            throw new BusinessException(SYSTEM_ERROR.code(), "密码不能为空");
+        }
+        
+        if (!userMapper.existsByEmail(email)) {
+            throw new BusinessException(SYSTEM_ERROR.code(), "邮箱未注册");
+        }
+        
+        User user = userMapper.selectByEmail(email);
+        if (user == null) {
+            throw new BusinessException(SYSTEM_ERROR.code(), "用户不存在");
+        }
+        
+        // 验证密码
+        if (user.getPassword() == null || user.getPassword().isEmpty()) {
+            throw new BusinessException(SYSTEM_ERROR.code(), "该账号未设置密码，请使用验证码登录");
+        }
+        
+        if (!PasswordEncoder.matches(password, user.getPassword())) {
+            throw new BusinessException(SYSTEM_ERROR.code(), "密码错误");
+        }
+        
         SignalContextCollector.collect(EVENT_INTER_MEDIATE_USER, user);
         SignalContextCollector.collect(EVENT_INTER_MEDIATE_REQUEST, request);
         String token = jwtUtils.generateToken(user);

@@ -18,6 +18,9 @@ import Drawio from "../views/Drawio.vue";
 import AIChat from "../views/AIChat.vue";
 import OrganizationManagement from "../views/back/OrganizationManagement.vue";
 import NotFound from "../views/NotFound.vue";
+import WebhookManagementView from "../views/back/WebhookManagementView.vue";
+import BillingManagementView from "../views/back/BillingManagementView.vue";
+import TemplateManagementView from "../views/back/TemplateManagementView.vue";
 // import OrganizationManagement from "../views/back/OrganizationManagement.vue";
 
 
@@ -102,6 +105,21 @@ const routes = [
       {
         path: 'settings',
         component: SettingsView,
+        transition: 'fade'
+      },
+      {
+        path: 'webhooks',
+        component: WebhookManagementView,
+        transition: 'fade'
+      },
+      {
+        path: 'billing',
+        component: BillingManagementView,
+        transition: 'fade'
+      },
+      {
+        path: 'templates',
+        component: TemplateManagementView,
         transition: 'fade'
       },
     ],

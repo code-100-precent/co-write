@@ -89,7 +89,9 @@ public class UserController {
 
     @ApiOperation("邮箱注册账号")
     public ApiResponse<UserVO> registerEmail(@RequestBody UserEmailRequest userEmailRequest, HttpServletRequest request) {
-        if (userEmailRequest.getCode().isEmpty() || userEmailRequest.getEmail().isEmpty()){
+        if (userEmailRequest.getCode() == null || userEmailRequest.getCode().isEmpty() 
+            || userEmailRequest.getEmail() == null || userEmailRequest.getEmail().isEmpty()
+            || userEmailRequest.getPassword() == null || userEmailRequest.getPassword().isEmpty()){
             return ApiResponse.error("注册信息不全");
         }
         return ApiResponse.success(userService.registerByEmail(userEmailRequest, request));
@@ -111,12 +113,25 @@ public class UserController {
     }
 
     /**
-     * 邮箱登录
+     * 邮箱登录（验证码）
      */
     @PostMapping("/login/email")
-    @ApiOperation("邮箱登录账号")
+    @ApiOperation("邮箱登录账号（验证码）")
     public ApiResponse<UserVO> loginByEmail(@RequestBody UserEmailRequest userEmailRequest, HttpServletRequest request) {
         return ApiResponse.success(userService.loginByEmail(userEmailRequest, request));
+    }
+
+    /**
+     * 密码登录
+     */
+    @PostMapping("/login/password")
+    @ApiOperation("密码登录")
+    public ApiResponse<UserVO> loginByPassword(@RequestBody UserEmailRequest userEmailRequest, HttpServletRequest request) {
+        if (userEmailRequest.getEmail() == null || userEmailRequest.getEmail().isEmpty()
+            || userEmailRequest.getPassword() == null || userEmailRequest.getPassword().isEmpty()) {
+            return ApiResponse.error("邮箱和密码不能为空");
+        }
+        return ApiResponse.success(userService.loginByPassword(userEmailRequest, request));
     }
 
     /**

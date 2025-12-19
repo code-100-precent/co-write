@@ -50,6 +50,9 @@
         <button class="action-btn" @click="showShareDialog = true">分享</button>
         <button class="action-btn" @click="showPermissionDialog = true">权限</button>
         <button class="action-btn" @click="showAuditDialog = true">审计</button>
+        <button class="action-btn" @click="showCommentPanel = !showCommentPanel">
+          {{ showCommentPanel ? '隐藏评论' : '显示评论' }}
+        </button>
       </div>
     </div>
     <div class="doc-title-input">
@@ -61,9 +64,28 @@
           :disabled="isCollabMode"
       />
     </div>
-    <div class="editor-container">
-      <MdEditor v-model="textContent" @change="onMdChange" style="height: 100%; width: 100%;"/>
+    <div class="tag-selector-wrapper" v-if="docId">
+      <TagSelector :documentId="Number(docId)" v-model="selectedTags" />
     </div>
+    <div class="editor-layout">
+      <div class="editor-container">
+        <MdEditor v-model="textContent" @change="onMdChange" style="height: 100%; width: 100%;"/>
+      </div>
+      <div v-if="showCommentPanel && docId" class="comment-panel-wrapper">
+        <DocumentCommentPanel
+          :documentId="Number(docId)"
+          @jump-to-anchor="handleJumpToAnchor"
+        />
+      </div>
+    </div>
+    <button
+      v-if="docId"
+      class="comment-toggle-btn"
+      @click="showCommentPanel = !showCommentPanel"
+      :class="{ active: showCommentPanel }"
+    >
+      {{ showCommentPanel ? '×' : '💬' }}
+    </button>
     <div v-if="showSuggestion" class="ai-suggestion-popup fixed-bottom-left">
       <pre>{{ suggestion }}</pre>
       <div class="hint-text">按 Tab 键接受</div>
@@ -130,6 +152,8 @@ import DocumentShareDialog from '../components/DocumentShareDialog.vue'
 import DocumentPermissionDialog from '../components/DocumentPermissionDialog.vue'
 import AuditLogDialog from '../components/AuditLogDialog.vue'
 import SharePasswordDialog from '../components/SharePasswordDialog.vue'
+import DocumentCommentPanel from '../components/DocumentCommentPanel.vue'
+import TagSelector from '../components/TagSelector.vue'
 
 const route = useRoute()
 const prevContent = ref('')
@@ -149,6 +173,8 @@ const showPermissionDialog = ref(false)
 const showAuditDialog = ref(false)
 const showPasswordDialog = ref(false)
 const shareCode = ref('')
+const showCommentPanel = ref(false)
+const selectedTags = ref([])
 
 function applySuggestion() {
   textContent.value = textContent.value + suggestion.value
@@ -359,6 +385,20 @@ function handlePasswordSuccess(data: any) {
   // 口令验证成功，可以访问文档
   console.log('口令验证成功:', data)
   showPasswordDialog.value = false
+}
+
+function handleJumpToAnchor(anchor: string) {
+  // 跳转到锚点位置
+  if (anchor) {
+    const element = document.querySelector(`[data-anchor="${anchor}"]`)
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      element.classList.add('highlight-anchor')
+      setTimeout(() => {
+        element.classList.remove('highlight-anchor')
+      }, 2000)
+    }
+  }
 }
 onMounted(() => {
   window.addEventListener('keydown', onKeyDown);
@@ -686,6 +726,13 @@ function sendWSMessage(payload: any) {
   background-color: #475569;
 }
 
+.editor-layout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 16px;
+}
+
 .editor-container {
   flex: 1;
   min-height: 0;
@@ -694,6 +741,58 @@ function sendWSMessage(payload: any) {
   border: 1px solid #ddd;
   background-color: white;
   display: flex;
+}
+
+.comment-panel-wrapper {
+  width: 350px;
+  min-height: 0;
+  border-radius: 0.75rem;
+  border: 1px solid #ddd;
+  background-color: white;
+  overflow: hidden;
+}
+
+.tag-selector-wrapper {
+  margin-bottom: 1rem;
+  padding: 0 0.5rem;
+}
+
+.comment-toggle-btn {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: #0ea5e9;
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s;
+  z-index: 1000;
+
+  &:hover {
+    background-color: #0284c7;
+    transform: scale(1.1);
+  }
+
+  &.active {
+    background-color: #64748b;
+  }
+
+  .icon {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+.highlight-anchor {
+  background-color: #fef3c7 !important;
+  transition: background-color 0.3s;
 }
 
 .icon-toggle {

@@ -98,6 +98,7 @@
           <a-space>
             <a-button type="outline" size="small" @click="editDocument(doc.id)">编辑</a-button>
             <a-button type="outline" size="small" @click="openShareDialog(doc.id)">分享</a-button>
+            <a-button v-if="currentKnowledgeBase" type="outline" size="small" @click="showKnowledgeBaseDetail">知识库详情</a-button>
             <a-button type="outline" size="small" @click="openPermissionDialog(doc.id)">权限</a-button>
             <a-button type="outline" size="small" @click="openAuditDialog(doc.id)">审计</a-button>
           </a-space>
@@ -166,6 +167,23 @@
       :documentId="currentDocumentId"
       @close="showAuditDialog = false"
     />
+
+    <KnowledgeBaseDetailDialog
+      :visible="showKnowledgeBaseDetailDialog"
+      :knowledgeBase="currentKnowledgeBase"
+      @close="showKnowledgeBaseDetailDialog = false"
+    />
+
+    <!-- 模板选择对话框 -->
+    <a-modal
+      v-model:visible="showTemplateDialog"
+      title="选择文档模板"
+      :width="800"
+      :footer="false"
+      @cancel="showTemplateDialog = false"
+    >
+      <DocumentTemplateSelector @template-selected="handleTemplateSelected" />
+    </a-modal>
   </div>
 </template>
 
@@ -179,6 +197,8 @@ import { Message } from '@arco-design/web-vue'
 import DocumentShareDialog from '../components/DocumentShareDialog.vue'
 import DocumentPermissionDialog from '../components/DocumentPermissionDialog.vue'
 import AuditLogDialog from '../components/AuditLogDialog.vue'
+import KnowledgeBaseDetailDialog from '../components/KnowledgeBaseDetailDialog.vue'
+import DocumentTemplateSelector from '../components/DocumentTemplateSelector.vue'
 import api from '../api/index'
 import dayjs from 'dayjs'
 
@@ -433,7 +453,52 @@ const selectFilterItem = (filterId: string, value: string) => {
 
 
 const openTemplates = () => {
-  Message.info('模板中心功能')
+  showTemplateDialog.value = true
+}
+
+const handleTemplateSelected = async (templateContent: string) => {
+  // 使用模板内容创建新文档
+  if (!currentKnowledgeBaseId.value) {
+    Message.warning('请先选择知识库')
+    return
+  }
+
+  try {
+    const newDoc = {
+      title: '新文档',
+      knowledgeBaseId: currentKnowledgeBaseId.value,
+      parentId: null,
+      level: 0,
+      order: documents.value.length,
+    }
+    
+    const res = await api.documentApi.createDocument(newDoc)
+    const createdDoc = res.data
+    
+    // 如果有模板内容，保存到文档
+    if (templateContent && createdDoc.id) {
+      await api.documentApi.saveContent(createdDoc.id, {
+        title: '新文档',
+        content: templateContent,
+        latestOp: 'template-apply'
+      })
+    }
+    
+    Message.success('文档创建成功')
+    showTemplateDialog.value = false
+    
+    // 跳转到文档编辑页面
+    router.push({
+      path: '/documents',
+      query: {
+        id: createdDoc.id,
+        title: '新文档'
+      }
+    })
+  } catch (error) {
+    Message.error('创建文档失败')
+    console.error(error)
+  }
 }
 
 const useAI = () => {
@@ -457,6 +522,8 @@ const currentDocumentId = ref('')
 const showShareDialog = ref(false)
 const showPermissionDialog = ref(false)
 const showAuditDialog = ref(false)
+const showKnowledgeBaseDetailDialog = ref(false)
+const showTemplateDialog = ref(false)
 
 const editDocument = (docId: string) => {
   router.push(`/documents?id=${docId}`)
@@ -475,6 +542,10 @@ const openPermissionDialog = (docId: string) => {
 const openAuditDialog = (docId: string) => {
   currentDocumentId.value = docId
   showAuditDialog.value = true
+}
+
+const showKnowledgeBaseDetail = () => {
+  showKnowledgeBaseDetailDialog.value = true
 }
 
 // -----------------------

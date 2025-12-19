@@ -9,130 +9,113 @@
 
         <!-- 登录方式切换 -->
         <a-radio-group
-            v-model="mode"
+            v-model="loginMode"
             type="button"
             class="tab-selector"
-            @change="switchMode"
+            @change="switchLoginMode"
         >
-          <a-radio value="email">
+          <a-radio value="code">
             <MailIcon class="icon" />
-            邮箱登录
+            验证码登录
           </a-radio>
-          <a-radio value="account">
-            <UserIcon class="icon" />
-            账号登录
+          <a-radio value="password">
+            <LockIcon class="icon" />
+            密码登录
           </a-radio>
         </a-radio-group>
 
         <transition name="slide-fade" mode="out-in">
           <a-form
-              :key="mode"
+              :key="loginMode"
               :model="formData"
               @submit="handleLogin"
               layout="vertical"
               class="login-form"
               :required-symbol="false"
           >
-            <div v-if="mode === 'email'" class="mode-block">
-              <a-form-item
-                  field="email"
-                  label=""
-                  :rules="[
-                    { required: true, message: '请输入邮箱' },
-                    { type: 'email', message: '请输入有效的邮箱地址' }
-                  ]"
-                  :validate-trigger="['blur']"
+            <a-form-item
+                field="email"
+                label=""
+                :rules="[
+                  { required: true, message: '请输入邮箱' },
+                  { type: 'email', message: '请输入有效的邮箱地址' }
+                ]"
+                :validate-trigger="['blur']"
+            >
+              <a-input
+                  v-model="formData.email"
+                  placeholder="请输入邮箱"
+                  size="large"
+                  allow-clear
               >
-                <a-input
-                    v-model="formData.email"
-                    placeholder="请输入邮箱"
-                    size="large"
-                    allow-clear
-                >
-                  <template #prefix>
-                    <MailIcon class="icon" />
-                  </template>
-                </a-input>
-              </a-form-item>
-              <a-form-item
-                  field="code"
-                  label=""
-                  :rules="[
-                    { required: true, message: '请输入验证码' },
-                    { length: 6, message: '验证码必须为6位数字' },
-                    { match: /^\d{6}$/, message: '验证码只能包含数字' }
-                  ]"
-                  :validate-trigger="['blur']"
-              >
-                <a-input-group>
-                  <a-input
-                      v-model="formData.code"
-                      placeholder="请输入验证码"
-                      size="large"
-                      maxlength="6"
-                      allow-clear
-                  >
-                    <template #prefix>
-                      <LockIcon class="icon" />
-                    </template>
-                  </a-input>
-                  <a-button
-                      type="primary"
-                      size="large"
-                      :disabled="codeCooldown > 0 || !formData.email"
-                      @click="sendCode"
-                      :loading="sendingCode"
-                  >
-                    <template v-if="codeCooldown > 0">
-                      {{ codeCooldown }}s
-                    </template>
-                    <template v-else>
-                      发送验证码
-                    </template>
-                  </a-button>
-                </a-input-group>
-              </a-form-item>
-            </div>
+                <template #prefix>
+                  <MailIcon class="icon" />
+                </template>
+              </a-input>
+            </a-form-item>
 
-            <div v-else class="mode-block">
-              <a-form-item
-                  field="username"
-                  label=""
-                  :rules="[{ required: true, message: '请输入用户名' }]"
-                  :validate-trigger="['blur']"
-              >
+            <!-- 验证码登录 -->
+            <a-form-item
+                v-if="loginMode === 'code'"
+                field="code"
+                label=""
+                :rules="[
+                  { required: true, message: '请输入验证码' },
+                  { length: 6, message: '验证码必须为6位数字' },
+                  { match: /^\d{6}$/, message: '验证码只能包含数字' }
+                ]"
+                :validate-trigger="['blur']"
+            >
+              <a-input-group>
                 <a-input
-                    v-model="formData.username"
-                    placeholder="请输入用户名"
+                    v-model="formData.code"
+                    placeholder="请输入验证码"
                     size="large"
-                    allow-clear
-                >
-                  <template #prefix>
-                    <UserIcon class="icon" />
-                  </template>
-                </a-input>
-              </a-form-item>
-              <a-form-item
-                  field="password"
-                  label=""
-                  :rules="[{ required: true, message: '请输入密码' }]"
-                  :validate-trigger="['blur']"
-              >
-                <a-input-password
-                    v-model="formData.password"
-                    placeholder="请输入密码"
-                    size="large"
+                    maxlength="6"
                     allow-clear
                 >
                   <template #prefix>
                     <LockIcon class="icon" />
                   </template>
-                </a-input-password>
-              </a-form-item>
-              <div class="forgot-password">
-                <a-link @click="onForgotPassword">忘记密码？</a-link>
-              </div>
-            </div>
+                </a-input>
+                <a-button
+                    type="primary"
+                    size="large"
+                    :disabled="codeCooldown > 0 || !formData.email"
+                    @click="sendCode"
+                    :loading="sendingCode"
+                >
+                  <template v-if="codeCooldown > 0">
+                    {{ codeCooldown }}s
+                  </template>
+                  <template v-else>
+                    发送验证码
+                  </template>
+                </a-button>
+              </a-input-group>
+            </a-form-item>
+
+            <!-- 密码登录 -->
+            <a-form-item
+                v-else
+                field="password"
+                label=""
+                :rules="[
+                  { required: true, message: '请输入密码' }
+                ]"
+                :validate-trigger="['blur']"
+            >
+              <a-input-password
+                  v-model="formData.password"
+                  placeholder="请输入密码"
+                  size="large"
+                  allow-clear
+              >
+                <template #prefix>
+                  <LockIcon class="icon" />
+                </template>
+              </a-input-password>
+            </a-form-item>
 
             <a-form-item>
               <a-button
@@ -147,6 +130,10 @@
                 <template v-else>登录中...</template>
               </a-button>
             </a-form-item>
+            <div class="forgot-password-row">
+              <a-link @click="showRegisterDialog = true">注册新用户</a-link>
+              <a-link @click="onForgotPassword">忘记密码？</a-link>
+            </div>
           </a-form>
         </transition>
 
@@ -166,6 +153,112 @@
         </a-button>
       </a-card>
     </transition>
+
+    <!-- 注册对话框 -->
+    <a-modal
+      v-model:visible="showRegisterDialog"
+      title="注册新用户"
+      :width="500"
+      @ok="handleRegister"
+      @cancel="cancelRegister"
+    >
+      <a-form :model="registerForm" layout="vertical" ref="registerFormRef">
+        <a-form-item
+          field="email"
+          label="邮箱"
+          :rules="[
+            { required: true, message: '请输入邮箱' },
+            { type: 'email', message: '请输入有效的邮箱地址' }
+          ]"
+        >
+          <a-input
+            v-model="registerForm.email"
+            placeholder="请输入邮箱"
+            size="large"
+            allow-clear
+          >
+            <template #prefix>
+              <MailIcon class="icon" />
+            </template>
+          </a-input>
+        </a-form-item>
+        <a-form-item
+          field="code"
+          label="验证码"
+          :rules="[
+            { required: true, message: '请输入验证码' },
+            { length: 6, message: '验证码必须为6位数字' },
+            { match: /^\d{6}$/, message: '验证码只能包含数字' }
+          ]"
+        >
+          <a-input-group>
+            <a-input
+              v-model="registerForm.code"
+              placeholder="请输入验证码"
+              size="large"
+              maxlength="6"
+              allow-clear
+            >
+              <template #prefix>
+                <LockIcon class="icon" />
+              </template>
+            </a-input>
+            <a-button
+              type="primary"
+              size="large"
+              :disabled="registerCodeCooldown > 0 || !registerForm.email"
+              @click="sendRegisterCode"
+              :loading="sendingRegisterCode"
+            >
+              <template v-if="registerCodeCooldown > 0">
+                {{ registerCodeCooldown }}s
+              </template>
+              <template v-else>
+                发送验证码
+              </template>
+            </a-button>
+          </a-input-group>
+        </a-form-item>
+        <a-form-item
+          field="password"
+          label="密码"
+          :rules="[
+            { required: true, message: '请输入密码' },
+            { minLength: 6, message: '密码长度至少6位' }
+          ]"
+        >
+          <a-input-password
+            v-model="registerForm.password"
+            placeholder="请输入密码（至少6位）"
+            size="large"
+            allow-clear
+          >
+            <template #prefix>
+              <LockIcon class="icon" />
+            </template>
+          </a-input-password>
+        </a-form-item>
+        <a-form-item
+          field="confirmPassword"
+          label="确认密码"
+          :rules="[
+            { required: true, message: '请确认密码' },
+            { validator: validateRegisterConfirmPassword }
+          ]"
+        >
+          <a-input-password
+            v-model="registerForm.confirmPassword"
+            placeholder="请再次输入密码"
+            size="large"
+            allow-clear
+          >
+            <template #prefix>
+              <LockIcon class="icon" />
+            </template>
+          </a-input-password>
+        </a-form-item>
+      </a-form>
+    </a-modal>
   </div>
 </template>
 
@@ -185,17 +278,28 @@ const router = useRouter()
 import { useAuth } from '../composables/useAuth'
 const { setToken, setUserInfo } = useAuth()
 
-const mode = ref<'email' | 'account'>('email')
+const loginMode = ref<'code' | 'password'>('code')
 const formData = reactive({
   email: '2148582258@qq.com',
   code: '',
-  username: '',
   password: '',
 })
 const loading = ref(false)
 const sendingCode = ref(false)
 const codeCooldown = ref(0)
 let timer: any = null
+
+const showRegisterDialog = ref(false)
+const registerForm = reactive({
+  email: '',
+  code: '',
+  password: '',
+  confirmPassword: '',
+})
+const sendingRegisterCode = ref(false)
+const registerCodeCooldown = ref(0)
+let registerTimer: any = null
+const registerFormRef = ref()
 
 const bgCanvas = ref<HTMLCanvasElement | null>(null)
 let rafId = 0 as number
@@ -273,8 +377,118 @@ onMounted(() => {
   })
 })
 
-const switchMode = (value: string) => {
-  mode.value = value as 'email' | 'account'
+// 发送注册验证码
+const sendRegisterCode = async () => {
+  if (!registerForm.email) {
+    Message.warning('请输入邮箱')
+    return
+  }
+  try {
+    sendingRegisterCode.value = true
+    await api.userApi.sendVerificationCode(registerForm.email)
+
+    registerCodeCooldown.value = 60
+    registerTimer = setInterval(() => {
+      if (registerCodeCooldown.value > 0) {
+        registerCodeCooldown.value--
+      } else {
+        clearInterval(registerTimer)
+      }
+    }, 1000)
+    Message.success('验证码已发送')
+  } catch (e: any) {
+    Message.error(e.message || '发送失败')
+  } finally {
+    sendingRegisterCode.value = false
+  }
+}
+
+// 验证注册确认密码
+const validateRegisterConfirmPassword = (value: string, callback: (error?: string) => void) => {
+  if (!value) {
+    callback('请确认密码')
+  } else if (value !== registerForm.password) {
+    callback('两次输入的密码不一致')
+  } else {
+    callback()
+  }
+}
+
+// 处理注册
+const handleRegister = async () => {
+  if (!registerFormRef.value) return
+  
+  try {
+    await registerFormRef.value.validate()
+    
+    if (!registerForm.email || !registerForm.code || !registerForm.password || !registerForm.confirmPassword) {
+      Message.warning('请填写完整信息')
+      return
+    }
+    
+    if (registerForm.password !== registerForm.confirmPassword) {
+      Message.warning('两次输入的密码不一致')
+      return
+    }
+    
+    loading.value = true
+    const registerData = await api.userApi.register({
+      email: registerForm.email,
+      code: registerForm.code,
+      password: registerForm.password
+    })
+
+    if (registerData.data?.token) {
+      setToken(registerData.data.token)
+      setUserInfo({
+        username: registerData.data.username,
+        email: registerData.data.email,
+        avatarUrl: registerData.data.avatarUrl,
+        bio: registerData.data.bio,
+        language: registerData.data.language,
+        themeDark: registerData.data.themeDark,
+        status: registerData.data.status
+      })
+      Message.success('注册成功，正在跳转...')
+      showRegisterDialog.value = false
+      cancelRegister()
+      router.push('/')
+    } else {
+      Message.error(registerData.message || '注册失败')
+    }
+  } catch (err: any) {
+    if (err.errors) {
+      // 表单验证错误
+      return
+    }
+    Message.error(err.message || '注册失败，请稍后重试')
+  } finally {
+    loading.value = false
+  }
+}
+
+// 取消注册
+const cancelRegister = () => {
+  registerForm.email = ''
+  registerForm.code = ''
+  registerForm.password = ''
+  registerForm.confirmPassword = ''
+  if (registerCodeCooldown.value > 0) {
+    clearInterval(registerTimer)
+    registerCodeCooldown.value = 0
+  }
+}
+
+// 切换登录方式
+const switchLoginMode = (value: string) => {
+  loginMode.value = value as 'code' | 'password'
+  // 切换时清空表单
+  formData.code = ''
+  formData.password = ''
+  if (codeCooldown.value > 0) {
+    clearInterval(timer)
+    codeCooldown.value = 0
+  }
 }
 
 // 发送验证码
@@ -310,51 +524,33 @@ const handleLogin = async (data: { values: any; errors: any }) => {
 
   loading.value = true
   try {
-    const payload =
-        mode.value === 'email'
-            ? { email: formData.email, code: formData.code }
-            : { username: formData.username, password: formData.password }
-
-    const response =
-        mode.value === 'email'
-            ? await api.userApi.login(payload)
-            : await api.userApi.register(payload)
-
-    // 登录失败时，尝试自动注册
-    if (response.code === 500 && response.message === '邮箱未注册') {
-      Message.info({
-        content: '检测到您还未注册账号，正在为您自动注册...',
-        duration: 3000
-      })
-      try {
-        // 自动注册
-        const registerData = await api.userApi.register({
-          email: formData.email,
-          code: formData.code
-        })
-
-        if (registerData.data?.token) {
-          // 注册成功后，保存 token 和用户信息
-          setToken(registerData.data.token)
-          setUserInfo({
-            username: registerData.data.username,
-            email: registerData.data.email,
-            avatarUrl: registerData.data.avatarUrl,
-            bio: registerData.data.bio,
-            language: registerData.data.language,
-            themeDark: registerData.data.themeDark,
-            status: registerData.data.status
-          })
-          Message.success('注册成功，正在跳转...')
-          router.push('/')
-        } else {
-          Message.error('注册失败')
-        }
-      } catch (regErr: any) {
-        Message.error(regErr.message || '注册失败')
+    let response
+    if (loginMode.value === 'code') {
+      // 验证码登录
+      if (!formData.email || !formData.code) {
+        Message.warning('请填写邮箱和验证码')
+        loading.value = false
+        return
       }
-    } else if (response.data?.token) {
-      // 登录成功，保存 token 和用户信息
+      response = await api.userApi.loginByEmail({
+        email: formData.email,
+        code: formData.code
+      })
+    } else {
+      // 密码登录
+      if (!formData.email || !formData.password) {
+        Message.warning('请填写邮箱和密码')
+        loading.value = false
+        return
+      }
+      response = await api.userApi.loginByPassword({
+        email: formData.email,
+        password: formData.password
+      })
+    }
+
+    if (response.data?.token) {
+      // 登录成功
       setToken(response.data.token)
       setUserInfo({
         username: response.data.username,
@@ -379,9 +575,58 @@ const handleLogin = async (data: { values: any; errors: any }) => {
 
 // GitHub 登录
 const loginWithGitHub = () => {
-  window.location.href =
-      'https://github.com/login/oauth/authorize?client_id=YOUR_CLIENT_ID'
+  // 检查URL参数中是否有token（后端重定向回来的）
+  const urlParams = new URLSearchParams(window.location.search)
+  const token = urlParams.get('token')
+  const code = urlParams.get('code')
+  
+  if (token) {
+    // 后端已经处理了OAuth，直接使用返回的token
+    loading.value = true
+    try {
+      setToken(token)
+      // 获取用户信息
+      api.userApi.getUserInfo().then((res) => {
+        if (res.data) {
+          setUserInfo({
+            username: res.data.username,
+            email: res.data.email,
+            avatarUrl: res.data.avatarUrl,
+            bio: res.data.bio,
+            language: res.data.language,
+            themeDark: res.data.themeDark,
+            status: res.data.status
+          })
+        }
+        Message.success('GitHub登录成功，正在跳转...')
+        router.push('/')
+      }).catch(() => {
+        // 即使获取用户信息失败，也尝试跳转
+        router.push('/')
+      }).finally(() => {
+        loading.value = false
+      })
+    } catch (err: any) {
+      Message.error('GitHub登录失败，请稍后重试')
+      loading.value = false
+    }
+  } else {
+    // 跳转到GitHub授权页面
+    // 注意：需要配置实际的GitHub Client ID
+    const clientId = 'YOUR_GITHUB_CLIENT_ID' // 应该从环境变量或配置中获取
+    const redirectUri = encodeURIComponent('http://localhost:8080/api/users/oauth2/code/github')
+    const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=user:email`
+    window.location.href = githubAuthUrl
+  }
 }
+
+// 页面加载时检查是否有GitHub回调
+onMounted(() => {
+  const urlParams = new URLSearchParams(window.location.search)
+  if (urlParams.get('token')) {
+    loginWithGitHub()
+  }
+})
 
 // 忘记密码处理
 const onForgotPassword = () => {
@@ -435,6 +680,25 @@ const onForgotPassword = () => {
   to { transform: scale(1); opacity: 1; }
 }
 
+/* 登录方式切换动画 */
+.slide-fade-enter-active {
+  transition: all 0.3s ease-out;
+}
+
+.slide-fade-leave-active {
+  transition: all 0.2s ease-in;
+}
+
+.slide-fade-enter-from {
+  transform: translateX(10px);
+  opacity: 0;
+}
+
+.slide-fade-leave-to {
+  transform: translateX(-10px);
+  opacity: 0;
+}
+
 .logo {
   font-size: 30px;
   font-weight: 700;
@@ -443,15 +707,16 @@ const onForgotPassword = () => {
   text-align: center;
 }
 
+
 .tab-selector {
-  margin-bottom: 1.5rem;
   width: 100%;
+  margin-bottom: 1rem;
 }
 
 :deep(.tab-selector .arco-radio-group) {
   width: 100%;
   display: flex;
-  gap: 8px;
+  gap: 0;
 }
 
 :deep(.tab-selector .arco-radio-button) {
@@ -460,9 +725,10 @@ const onForgotPassword = () => {
   align-items: center;
   justify-content: center;
   gap: 6px;
+  margin: 0;
 }
 
-:deep(.tab-selector .arco-radio-button .icon) {
+:deep(.arco-radio-button .icon) {
   width: 16px;
   height: 16px;
 }
@@ -500,8 +766,10 @@ const onForgotPassword = () => {
   flex: 1;
 }
 
-.forgot-password {
-  text-align: right;
+.forgot-password-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-top: -0.8rem;
   margin-bottom: 0.5rem;
 }
@@ -525,6 +793,11 @@ const onForgotPassword = () => {
 :deep(.arco-divider-text) {
   color: #86909c;
   font-size: 13px;
+}
+
+.register-tip {
+  text-align: center;
+  margin-top: 12px;
 }
 
 </style>

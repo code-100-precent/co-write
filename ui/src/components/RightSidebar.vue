@@ -22,12 +22,20 @@
       </a-card>
 
       <!-- 新建一级文档按钮 -->
-      <a-button type="primary" long @click="createTopLevel" class="create-btn">
-        <template #icon>
-          <icon-plus />
-        </template>
-        新建一级文档
-      </a-button>
+      <a-space direction="vertical" :size="8" style="width: 100%;">
+        <a-button type="primary" long @click="createTopLevel" class="create-btn">
+          <template #icon>
+            <icon-plus />
+          </template>
+          新建一级文档
+        </a-button>
+        <a-button type="outline" long @click="showTemplateSelector = true" class="create-btn">
+          <template #icon>
+            <icon-file />
+          </template>
+          从模板创建
+        </a-button>
+      </a-space>
 
       <NestedOutlineEditor
           v-model:items="documents"
@@ -39,14 +47,28 @@
       <!-- 插槽 -->
       <slot />
     </div>
+
+    <!-- 模板选择对话框 -->
+    <a-modal
+      v-model:visible="showTemplateSelector"
+      title="选择文档模板"
+      :width="800"
+      :footer="false"
+      @cancel="showTemplateSelector = false"
+    >
+      <DocumentTemplateSelector @template-selected="handleTemplateSelected" />
+    </a-modal>
   </aside>
 </template>
 <script lang="ts" setup>
 import { defineProps, defineEmits, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { Message } from '@arco-design/web-vue'
 import NestedOutlineEditor from '../components/NestedOutlineEditor.vue'
+import DocumentTemplateSelector from './DocumentTemplateSelector.vue'
 import api from '../api/index'
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
-import { IconPlus } from '@arco-design/web-vue/es/icon'
+import { IconPlus, IconFile } from '@arco-design/web-vue/es/icon'
 
 interface DocumentItem {
   id: string
@@ -78,6 +100,8 @@ watch(
 )
 
 const selectedDoc = ref<DocumentItem | null>(null)
+const showTemplateSelector = ref(false)
+const router = useRouter()
 
 const handleSelect = (doc: DocumentItem) => {
   selectedDoc.value = doc
@@ -96,8 +120,62 @@ const createTopLevel = async () => {
     const res = await api.documentApi.createDocument(newDoc)
     const created = res.data
     documents.value.push(created)
+    // 跳转到文档编辑页面
+    router.push({
+      path: '/documents',
+      query: {
+        id: created.id,
+        title: created.title
+      }
+    })
   } catch (e) {
     console.error('创建失败', e)
+    Message.error('创建文档失败')
+  }
+}
+
+const handleTemplateSelected = async (templateContent: string) => {
+  if (!props.currentRepo.id) {
+    Message.warning('请先选择知识库')
+    return
+  }
+
+  try {
+    const newDoc = {
+      title: '新文档',
+      knowledgeBaseId: props.currentRepo.id,
+      parentId: null,
+      level: 0,
+      order: documents.value.length,
+    }
+    
+    const res = await api.documentApi.createDocument(newDoc)
+    const createdDoc = res.data
+    
+    // 如果有模板内容，保存到文档
+    if (templateContent && createdDoc.id) {
+      await api.documentApi.saveContent(createdDoc.id, {
+        title: '新文档',
+        content: templateContent,
+        latestOp: 'template-apply'
+      })
+    }
+    
+    documents.value.push(createdDoc)
+    Message.success('文档创建成功')
+    showTemplateSelector.value = false
+    
+    // 跳转到文档编辑页面
+    router.push({
+      path: '/documents',
+      query: {
+        id: createdDoc.id,
+        title: '新文档'
+      }
+    })
+  } catch (error) {
+    Message.error('创建文档失败')
+    console.error(error)
   }
 }
 </script>

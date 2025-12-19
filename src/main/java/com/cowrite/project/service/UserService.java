@@ -34,6 +34,11 @@ public interface UserService extends IService<User> {
     UserVO loginByEmail(UserEmailRequest userEmailRequest, HttpServletRequest request);
 
     /**
+     * 用户密码登录
+     */
+    UserVO loginByPassword(UserEmailRequest userEmailRequest, HttpServletRequest request);
+
+    /**
      * 修改用户信息
      */
     String updateUserInfo(User user);

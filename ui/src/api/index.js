@@ -9,6 +9,13 @@ import * as documentApi from './document.js';
 import * as documentShareApi from './documentShare.js';
 import * as auditApi from './audit.js';
 import * as organizationApi from './organization.js';
+import * as documentCommentApi from './documentComment.js';
+import * as tagApi from './tag.js';
+import * as documentTagApi from './documentTag.js';
+import * as documentTemplateApi from './documentTemplate.js';
+import * as webhookApi from './webhook.js';
+import * as knowledgeBaseCollaboratorApi from './knowledgeBaseCollaborator.js';
+import * as billingApi from './billing.js';
 
 // 统一暴露接口
 export default {
@@ -21,5 +28,12 @@ export default {
     documentApi,
     documentShareApi,
     auditApi,
-    organizationApi
+    organizationApi,
+    documentCommentApi,
+    tagApi,
+    documentTagApi,
+    documentTemplateApi,
+    webhookApi,
+    knowledgeBaseCollaboratorApi,
+    billingApi
 };

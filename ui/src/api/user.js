@@ -7,9 +7,14 @@ export const getUserInfo = () => {
     return request.get('/users/info');  // 调用 Node.js 的 /api/users/info 路由
 };
 
-// 邮箱登录
-export const login = (credentials) => {
-    return request.post('/users/login/email', credentials);  // 调用 Node.js 的 /api/users/login/email 路由
+// 邮箱登录（验证码）
+export const loginByEmail = (credentials) => {
+    return request.post('/users/login/email', credentials);
+};
+
+// 密码登录
+export const loginByPassword = (credentials) => {
+    return request.post('/users/login/password', credentials);
 };
 
 // 邮箱注册
@@ -42,4 +47,11 @@ export const updateUserInfo = (user) => {
 // 注销用户
 export const deleteAccount = () => {
     return request.post('/users/delete-account');  // 调用 Node.js 的 /api/users/delete-account 路由
+};
+
+// GitHub OAuth登录
+export const loginWithGitHub = (code) => {
+    return request.get('/users/oauth2/code/github', {
+        params: { code }
+    });
 };
